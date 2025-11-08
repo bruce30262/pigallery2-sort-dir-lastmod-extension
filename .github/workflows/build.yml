@@ -1,0 +1,63 @@
+name: Build and Release
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'  # trigger condition: push vX.X.X format tag
+  workflow_dispatch:  # allow trigger manually
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [22.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install dependencies and build
+      run: |
+        npm ci
+        npm run build
+    
+    - name: Verify build output
+      run: |
+        if [ ! -f server.js ]; then
+          echo "Error: server.js not found!"
+          exit 1
+        fi
+        ls -lh server.js
+
+    # Create Release only when tag is pushed
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+
+    # Upload server.js to Release page
+    - name: Upload server.js to Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./server.js
+        asset_name: server.js
+        asset_content_type: application/javascript
