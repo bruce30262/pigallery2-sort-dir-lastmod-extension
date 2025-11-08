@@ -1,0 +1,15 @@
+services:
+  pigallery2-extension-dev:
+    build:
+        context: ..
+        dockerfile: docker/Dockerfile
+        network: host
+    container_name: pigallery2-extension-dev
+    image: pigallery2-extension-dev:latest
+    volumes:
+      - ..:/app # mount extension repo to /app
+      - /app/node_modules # anonymous volume, only exist in container so won't pollute extension repo
+    working_dir: /app
+    tty: true
+    command: bash
+
