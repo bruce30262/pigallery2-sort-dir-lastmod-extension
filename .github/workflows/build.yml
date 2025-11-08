@@ -7,6 +7,9 @@ on:
       - 'v*.*.*'  # trigger condition: push vX.X.X format tag
   workflow_dispatch:  # allow trigger manually
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
