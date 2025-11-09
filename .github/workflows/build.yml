@@ -38,18 +38,26 @@ jobs:
           echo "Error: server.js not found!"
           exit 1
         fi
-        ls -lh server.js
+        if [ ! -f server.js.map ]; then
+          echo "Error: server.js.map not found!"
+          exit 1
+        fi
+        echo "Build output verified:"
+        ls -lh server.js server.js.map
 
-    # Create Release only when tag is pushed
-    - name: Create Release
+    # Create ZIP file
+    - name: Create ZIP archive
       if: startsWith(github.ref, 'refs/tags/')
-      id: create_release
+      run: |
+        zip -j sort-dir-lastmod.zip server.js server.js.map
+        ls -lh sort-dir-lastmod.zip
+
+    # Create Release
+    - name: Create Release and Upload Assets
+      if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-        files: ./server.js
+        files: sort-dir-lastmod.zip
+        generate_release_notes: true  # generate release notes
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
