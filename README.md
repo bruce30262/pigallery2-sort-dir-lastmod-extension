@@ -4,13 +4,13 @@ A [pigallery2](https://github.com/bpatrik/pigallery2) extension to sort director
 This extension is built on top of the [pigallery2-sample-extension template](https://github.com/bpatrik/pigallery2-sample-extension).  
 
 # Motivation  
-I prefer the folders in my gallery to be sorted by their last modification date ( similar to `ls -ltr` in Linux ). Although pigallery2 provides a "Sort directories by date" option in the settings page and states that:
+I prefer the folders in my gallery to be sorted by their last modification date ( like `ls -ltr` on Linux ). Although pigallery2 provides a "Sort directories by date" option in the settings page and even states that:
 > Directory date is the last modification time of that directory not the creation date of the oldest photo.
 
 However, the actual behavior still uses the oldest media ( if available ) in the folder to determine the sorting order, which is not what I wanted. Therefore I developed an extension that sorts directories purely based on their last modification date.
 
 > [!IMPORTANT]  
-> For directory's "last modification date", the extension directly uses the `lastModified` property, which in pigallery2 is computed as `max(directory's ctime, directory's mtime)` ( [ref](https://github.com/bpatrik/pigallery2/blob/86daf00b61407487b58651af9ed3cbf7d090f70b/src/backend/model/fileaccess/DiskManager.ts#L25) ), so the final behavior of this extension is effectively a hybrid between `ls -lcrt` and `ls -ltr` on Linux.
+> For sorting by a directory's "last modification date", the extension uses the directory's **`mtime`**, making it behave just like `ls -ltr` on Linux.
 
 # Installation  
 There are two ways to install the extension.
@@ -35,22 +35,26 @@ The [gist](https://gist.github.com/bruce30262/bbf39d12f058764014fe29e86cb0c56e) 
 5. If all went well, the extension will be installed and enabled automatically.
 
 # Usage
-Just sort the directories by date. You can compare the results with the output of `ls -lcrt` to verify that it's working correctly.  
+1. Enable the "Sort directories by date" option in the settings page.  
+2. Sort the directories by date. You can compare the results with the output of `ls -lrt` to see if it's working correctly.  
 
 # Implementation
 > [!Note] 
 > This section simply describes how I implemented this extension.
 
-Originally, pigallery2 uses the following code to sort the directories by date ( [ref](https://github.com/bpatrik/pigallery2/blob/86daf00b61407487b58651af9ed3cbf7d090f70b/src/frontend/app/ui/gallery/navigator/sorting.service.ts#L266) ):  
+By default, pigallery2 sorts directories by date using the following logic ( [ref](https://github.com/bpatrik/pigallery2/blob/86daf00b61407487b58651af9ed3cbf7d090f70b/src/frontend/app/ui/gallery/navigator/sorting.service.ts#L266) ):  
 
 ```typescript
 c.directories.sort(
     (a, b) => (a.cache.oldestMedia || a.lastModified) - (b.cache.oldestMedia || b.lastModified)
 );
-```
-So what this extension does is actually pretty simple: it just overwrite the `cache.oldestMedia` to `null` so pigallery2 will always use `lastModified` to sort the directories.  
+```  
 
-I initially wanted to sort using only `mtime` ( which was my original intention ), but doing so would require the extension to physically access each directory to retrieve the value, which could impact performance. Therefore I decided to stick with `lastModified` in the end.
+As you can see, to sort directories purely by `lastModified`, `cache.oldestMedia` needs to be set to `null` -- which is one of the things this extension does.
+
+However, `lastModified` in pigallery2 is calculated as `max(ctime, mtime)` ( [ref](https://github.com/bpatrik/pigallery2/blob/86daf00b61407487b58651af9ed3cbf7d090f70b/src/backend/model/fileaccess/DiskManager.ts#L25) ). This causes the sorting to behave more like `ls -lcrt`, which didn't suit me needs. To achieve the desired behavior, the extension overwrites `lastModified` with the directory's `mtime`.
+
+With these changes, the final behavior effectively matches `ls -lrt`.
 
 # Acknowledgements
 * [bpatrik](https://github.com/bpatrik), the author of pigallery2, for creating the extension feature and providing advice and guidance on developing this extension.
